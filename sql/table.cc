@@ -8650,7 +8650,7 @@ bool TR_table::query(ulonglong trx_id)
   READ_RECORD info;
   int error;
   List<TABLE_LIST> dummy;
-  SELECT_LEX &slex= thd->lex->select_lex;
+  SELECT_LEX &slex= *(thd->lex->first_select_lex());
   Name_resolution_context_backup backup(slex.context, *this);
   Item *field= newx Item_field(thd, &slex.context, (*this)[FLD_TRX_ID]);
   Item *value= newx Item_int(thd, trx_id);
@@ -8680,7 +8680,7 @@ bool TR_table::query(MYSQL_TIME &commit_time, bool backwards)
   READ_RECORD info;
   int error;
   List<TABLE_LIST> dummy;
-  SELECT_LEX &slex= thd->lex->select_lex;
+  SELECT_LEX &slex= *(thd->lex->first_select_lex());
   Name_resolution_context_backup backup(slex.context, *this);
   Item *field= newx Item_field(thd, &slex.context, (*this)[FLD_COMMIT_TS]);
   Item *value= newx Item_datetime_literal(thd, &commit_time, 6);

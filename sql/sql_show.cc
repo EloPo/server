@@ -4161,7 +4161,7 @@ bool get_lookup_field_values(THD *thd, COND *cond, TABLE_LIST *tables,
   case SQLCOM_SHOW_TRIGGERS:
   case SQLCOM_SHOW_EVENTS:
     thd->make_lex_string(&lookup_field_values->db_value,
-                         lex->first_select_lex()->db,
+                         lex->first_select_lex()->db.str,
                          lex->first_select_lex()->db.length);
     if (wild)
     {

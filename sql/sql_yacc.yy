@@ -8467,7 +8467,7 @@ alter_list_item:
         | RENAME opt_to table_ident
           {
             LEX *lex=Lex;
-            lex->select_lex.db= $3->db;
+            lex->builtin_select.db= $3->db;
             if (lex->builtin_select.db.str == NULL &&
                 lex->copy_db_to(&lex->builtin_select.db))
             {
@@ -12187,7 +12187,7 @@ table_primary_ident:
           {
             SELECT_LEX *sel= Select;
             sel->table_join_options= 0;
-            if (!($$= Select->add_table_to_list(thd, $1, $3,
+            if (!($$= Select->add_table_to_list(thd, $1, $4,
                                                 Select->get_table_join_options(),
                                                 YYPS->m_lock_type,
                                                 YYPS->m_mdl_type,
@@ -13634,7 +13634,8 @@ update:
             {
               /* it is single table update and it is update of derived table */
               my_error(ER_NON_UPDATABLE_TABLE, MYF(0),
-                       lex->select_lex.get_table_list()->alias.str, "UPDATE");
+                       lex->builtin_select.get_table_list()->alias.str,
+                       "UPDATE");
               MYSQL_YYABORT;
             }
             /*
@@ -13960,7 +13961,7 @@ show_param:
            {
              LEX *lex= Lex;
              lex->sql_command= SQLCOM_SHOW_TABLES;
-             lex->select_lex.db= $3;
+             lex->first_select_lex()->db= $3;
              if (prepare_schema_table(thd, lex, 0, SCH_TABLE_NAMES))
                MYSQL_YYABORT;
            }
@@ -13968,7 +13969,7 @@ show_param:
            {
              LEX *lex= Lex;
              lex->sql_command= SQLCOM_SHOW_TRIGGERS;
-             lex->select_lex.db= $3;
+             lex->first_select_lex()->db= $3;
              if (prepare_schema_table(thd, lex, 0, SCH_TRIGGERS))
                MYSQL_YYABORT;
            }
@@ -13976,7 +13977,7 @@ show_param:
            {
              LEX *lex= Lex;
              lex->sql_command= SQLCOM_SHOW_EVENTS;
-             lex->select_lex.db= $2;
+             lex->first_select_lex()->db= $2;
              if (prepare_schema_table(thd, lex, 0, SCH_EVENTS))
                MYSQL_YYABORT;
            }
@@ -13984,7 +13985,7 @@ show_param:
            {
              LEX *lex= Lex;
              lex->sql_command= SQLCOM_SHOW_TABLE_STATUS;
-             lex->select_lex.db= $3;
+             lex->first_select_lex()->db= $3;
              if (prepare_schema_table(thd, lex, 0, SCH_TABLES))
                MYSQL_YYABORT;
            }
@@ -13992,7 +13993,7 @@ show_param:
           {
             LEX *lex= Lex;
             lex->sql_command= SQLCOM_SHOW_OPEN_TABLES;
-            lex->select_lex.db= $3;
+            lex->first_select_lex()->db= $3;
             if (prepare_schema_table(thd, lex, 0, SCH_OPEN_TABLES))
               MYSQL_YYABORT;
           }
@@ -14397,7 +14398,7 @@ describe:
             mysql_init_select(lex);
             lex->current_select->parsing_place= SELECT_LIST;
             lex->sql_command= SQLCOM_SHOW_FIELDS;
-            lex->select_lex.db= null_clex_str;
+            lex->builtin_select.db= null_clex_str;
             lex->verbose= 0;
             if (prepare_schema_table(thd, lex, $2, SCH_COLUMNS))
               MYSQL_YYABORT;
@@ -17437,7 +17438,7 @@ view_select:
             void *create_view_select= thd->memdup(lex->create_view->select.str, len);
             lex->create_view->select.length= len;
             lex->create_view->select.str= (char *) create_view_select;
-            uint not_used;
+            size_t not_used;
             trim_whitespace(thd->charset(),
                             &lex->create_view->select, &not_used);
             lex->create_view->check= $3;

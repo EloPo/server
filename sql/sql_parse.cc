@@ -2583,7 +2583,7 @@ int prepare_schema_table(THD *thd, LEX *lex, Table_ident *table_ident,
       */
       if (check_db_name((LEX_STRING*) &lex->first_select_lex()->db))
       {
-        my_error(ER_WRONG_DB_NAME, MYF(0), lex->select_lex.db.str);
+        my_error(ER_WRONG_DB_NAME, MYF(0), lex->first_select_lex()->db.str);
         DBUG_RETURN(1);
       }
       break;
@@ -8152,8 +8152,9 @@ TABLE_LIST *st_select_lex::add_table_to_list(THD *thd,
   LEX_CSTRING alias_str;
   LEX *lex= thd->lex;
   DBUG_ENTER("add_table_to_list");
-  DBUG_PRINT("enter", ("Table '%s'  Select %p (%u)",
+  DBUG_PRINT("enter", ("Table '%s' (%p)  Select %p (%u)",
                         (alias ? alias->str : table->table.str),
+                        table,
                         this, select_number));
 
   if (!table)
