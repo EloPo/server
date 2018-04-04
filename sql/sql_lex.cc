@@ -8442,8 +8442,6 @@ bool LEX::insert_select_hack(SELECT_LEX *sel)
 
   DBUG_ASSERT(first_select_lex() == &builtin_select);
   DBUG_ASSERT(sel != NULL);
-  //  DBUG_ASSERT(sel->next_select() == NULL);
-
 
   if (builtin_select.link_prev)
   {
@@ -8469,6 +8467,19 @@ bool LEX::insert_select_hack(SELECT_LEX *sel)
   sel->context.first_name_resolution_table= insert_table;
   builtin_select.context= sel->context;
   change_item_list_context(&field_list, &sel->context);
+
+  if (sel->tvc && !sel->next_select() &&
+      (sql_command == SQLCOM_INSERT_SELECT ||
+       sql_command == SQLCOM_REPLACE_SELECT))
+  {
+    many_values= sel->tvc->lists_of_values;
+    sel->options= sel->tvc->select_options;
+    sel->tvc= NULL;
+    if (sql_command == SQLCOM_INSERT_SELECT)
+      sql_command= SQLCOM_INSERT;
+    else
+      sql_command= SQLCOM_REPLACE;
+  }
 
   for (SELECT_LEX *sel= all_selects_list;
        sel;

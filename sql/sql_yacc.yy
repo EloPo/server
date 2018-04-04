@@ -5271,10 +5271,6 @@ create_select_query_expression:
           {
             SELECT_LEX *first_select= $1->first_select();
 
-            Lex->insert_select_hack(first_select);
-            if (Lex->check_main_unit_semantics())
-              MYSQL_YYABORT;
-
             if (Lex->sql_command == SQLCOM_INSERT ||
                 Lex->sql_command == SQLCOM_REPLACE)
             {
@@ -5283,6 +5279,10 @@ create_select_query_expression:
               else
                 Lex->sql_command= SQLCOM_REPLACE_SELECT;
             }
+            Lex->insert_select_hack(first_select);
+            if (Lex->check_main_unit_semantics())
+              MYSQL_YYABORT;
+
           }
         | LEFT_PAREN_WITH with_clause query_expression_body ')'
           {
@@ -9241,10 +9241,12 @@ table_value_constructor:
             lex->insert_list=0;
 	  }
 	  values_list
-	  { 
+	  {
 	    LEX *lex=Lex;
-	    $$= lex->current_select;
-	    mysql_init_select(Lex);
+            if (!($$= lex->alloc_select(TRUE)) ||
+                  lex->push_select($$))
+              MYSQL_YYABORT;
+            $$->init_select();
 	    if (!($$->tvc=
 	          new (lex->thd->mem_root) table_value_constr(lex->many_values, $$, $$->options)))
 	      MYSQL_YYABORT;
