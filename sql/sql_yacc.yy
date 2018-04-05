@@ -9236,7 +9236,7 @@ table_value_constructor:
 	  VALUES
 	  {
 	    LEX *lex=Lex;
-            lex->field_list.empty();
+            //lex->field_list.empty();
             lex->many_values.empty();
             lex->insert_list=0;
 	  }
@@ -13473,7 +13473,7 @@ insert_table:
           table_name_with_opt_use_partition
           {
             LEX *lex=Lex;
-            lex->field_list.empty();
+            //lex->field_list.empty();
             lex->many_values.empty();
             lex->insert_list=0;
           };
