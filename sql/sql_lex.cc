@@ -2398,6 +2398,23 @@ void st_select_lex_node::add_slave(st_select_lex_node *slave_arg)
   }
 }
 
+void st_select_lex_node::link_chain_down(st_select_lex_node *first)
+{
+  st_select_lex_node *last_node;
+  st_select_lex_node *node= first;
+  do
+  {
+    last_node= node;
+    node->master= this;
+    node= node->next;
+  } while (node);
+  if ((last_node->next= slave))
+  {
+    slave->prev= &last_node->next;
+  }
+  first->prev= &slave;
+  slave= first;
+}
 
 /*
   include on level down (but do not link)
@@ -8450,6 +8467,12 @@ bool LEX::insert_select_hack(SELECT_LEX *sel)
   DBUG_ASSERT(first_select_lex() == &builtin_select);
   DBUG_ASSERT(sel != NULL);
 
+  if (builtin_select.first_inner_unit())
+  {
+    sel->link_chain_down(builtin_select.first_inner_unit());
+    builtin_select.slave= NULL;
+  }
+
   if (builtin_select.link_prev)
   {
     if ((*builtin_select.link_prev= builtin_select.link_next))
@@ -8487,7 +8510,6 @@ bool LEX::insert_select_hack(SELECT_LEX *sel)
       sql_command= SQLCOM_INSERT;
     else
       sql_command= SQLCOM_REPLACE;
-    DBUG_RETURN(FALSE);
   }
 
 
