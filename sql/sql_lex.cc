@@ -681,6 +681,7 @@ void LEX::start(THD *thd_arg)
   //empty select_stack
   select_stack_top= 0;
   unit.init_query();
+  current_select_number= 0;
   builtin_select.linkage= UNSPECIFIED_TYPE;
   builtin_select.set_linkage(UNSPECIFIED_TYPE);
   builtin_select.distinct= TRUE;
