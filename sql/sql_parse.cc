@@ -2622,7 +2622,8 @@ int prepare_schema_table(THD *thd, LEX *lex, Table_ident *table_ident,
   default:
     break;
   }
-  
+  if (schema_select_lex)
+    schema_select_lex->set_master_unit(&lex->unit);
   SELECT_LEX *select_lex= lex->current_select;
   if (make_schema_select(thd, select_lex, get_schema_table(schema_table_idx)))
     DBUG_RETURN(1);
