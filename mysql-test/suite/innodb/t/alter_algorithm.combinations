@@ -1,0 +1,11 @@
+[COPY]
+--old-alter-table=copy
+
+[INPLACE]
+--old-alter-table=inplace
+
+[NOCOPY]
+--old-alter-table=nocopy
+
+[INSTANT]
+--old-alter-table=instant

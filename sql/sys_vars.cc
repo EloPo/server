@@ -2371,9 +2371,13 @@ static Sys_var_mybool Sys_old_mode(
        "old", "Use compatible behavior from previous MariaDB version. See also --old-mode",
        SESSION_VAR(old_mode), CMD_LINE(OPT_ARG), DEFAULT(FALSE));
 
-static Sys_var_mybool Sys_old_alter_table(
+static const char *old_alter_table_modes[]= {"DEFAULT", "COPY", "INPLACE",
+"NOCOPY", "INSTANT", NULL};
+
+static Sys_var_enum Sys_old_alter_table(
        "old_alter_table", "Use old, non-optimized alter table",
-       SESSION_VAR(old_alter_table), CMD_LINE(OPT_ARG), DEFAULT(FALSE));
+       SESSION_VAR(old_alter_table), CMD_LINE(OPT_ARG),
+       old_alter_table_modes, DEFAULT(DEFAULT_ALGO));
 
 static bool check_old_passwords(sys_var *self, THD *thd, set_var *var)
 {

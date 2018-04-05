@@ -615,7 +615,9 @@ The following options may be given as the first argument:
  connection before aborting the write
  --old               Use compatible behavior from previous MariaDB version.
  See also --old-mode
- --old-alter-table   Use old, non-optimized alter table
+ --old-alter-table[=name] 
+ Use old, non-optimized alter table. One of: DEFAULT, COPY,
+ INPLACE, NOCOPY, INSTANT
  --old-mode=name     Used to emulate old behavior from earlier MariaDB or
  MySQL versions. Any combination of: 
  NO_DUP_KEY_WARNINGS_WITH_IGNORE, NO_PROGRESS_INFO, 
@@ -1507,7 +1509,7 @@ net-read-timeout 30
 net-retry-count 10
 net-write-timeout 60
 old FALSE
-old-alter-table FALSE
+old-alter-table DEFAULT
 old-mode 
 old-passwords FALSE
 old-style-user-limits FALSE

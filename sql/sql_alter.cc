@@ -60,6 +60,10 @@ bool Alter_info::set_requested_algorithm(const LEX_CSTRING *str)
     requested_algorithm= ALTER_TABLE_ALGORITHM_COPY;
   else if (!my_strcasecmp(system_charset_info, str->str, "DEFAULT"))
     requested_algorithm= ALTER_TABLE_ALGORITHM_DEFAULT;
+  else if (!my_strcasecmp(system_charset_info, str->str, "NOCOPY"))
+    requested_algorithm= ALTER_TABLE_ALGORITHM_NOCOPY;
+  else if (!my_strcasecmp(system_charset_info, str->str, "INSTANT"))
+    requested_algorithm= ALTER_TABLE_ALGORITHM_INSTANT;
   else
     return true;
   return false;
@@ -82,6 +86,165 @@ bool Alter_info::set_requested_lock(const LEX_CSTRING *str)
   return false;
 }
 
+const char* Alter_info::algorithm() const
+{
+  switch (requested_algorithm) {
+  case ALTER_TABLE_ALGORITHM_INPLACE:
+    return "ALGORITHM=INPLACE";
+  case ALTER_TABLE_ALGORITHM_COPY:
+    return "ALGORITHM=COPY";
+  case ALTER_TABLE_ALGORITHM_DEFAULT:
+    return "ALGORITHM=DEFAULT";
+  case ALTER_TABLE_ALGORITHM_NOCOPY:
+    return "ALGORITHM=NOCOPY";
+  case ALTER_TABLE_ALGORITHM_INSTANT:
+    return "ALGORITHM=INSTANT";
+  }
+
+  return NULL;
+}
+
+const char* Alter_info::lock() const
+{
+  switch (requested_lock) {
+  case ALTER_TABLE_LOCK_SHARED:
+    return "LOCK=SHARED";
+  case ALTER_TABLE_LOCK_NONE:
+    return "LOCK=NONE";
+  case ALTER_TABLE_LOCK_DEFAULT:
+    return "LOCK=DEFAULT";
+  case ALTER_TABLE_LOCK_EXCLUSIVE:
+    return "LOCK=EXCLUSIVE";
+  }
+  return NULL;
+}
+
+/**
+   Returns the old alter table value in the format of "OLD_ALTER_TABLE=value"
+
+   @param  thd  thread handle
+*/
+static const char* get_old_alter_table(THD* thd)
+{
+  switch(thd->variables.old_alter_table) {
+  case DEFAULT_ALGO:
+    return "OLD_ALTER_TABLE=DEFAULT";
+  case COPY_ALGO:
+    return "OLD_ALTER_TABLE=COPY";
+  case INPLACE_ALGO:
+    return "OLD_ALTER_TABLE=INPLACE";
+  case NOCOPY_ALGO:
+    return "OLD_ALTER_TABLE=NOCOPY";
+  case INSTANT_ALGO:
+    return "OLD_ALTER_TABLE=INSTANT";
+  }
+  return NULL;
+}
+
+bool Alter_info::supports_algorithm(THD* thd, enum_alter_inplace_result result,
+                                    const Alter_inplace_info &ha_alter_info)
+{
+  switch (result) {
+  case HA_ALTER_INPLACE_EXCLUSIVE_LOCK:
+  case HA_ALTER_INPLACE_SHARED_LOCK:
+  case HA_ALTER_INPLACE_NO_LOCK:
+  case HA_ALTER_INPLACE_INSTANT:
+     return false;
+  case HA_ALTER_INPLACE_COPY_NO_LOCK:
+  case HA_ALTER_INPLACE_COPY_LOCK:
+    if (requested_algorithm >= Alter_info::ALTER_TABLE_ALGORITHM_NOCOPY)
+    {
+      ha_alter_info.report_unsupported_error(algorithm(),
+                                             "ALGORITHM=INPLACE");
+      return true;
+    }
+    if (requested_algorithm == Alter_info::ALTER_TABLE_ALGORITHM_DEFAULT &&
+        thd->variables.old_alter_table >= NOCOPY_ALGO)
+    {
+      ha_alter_info.report_unsupported_error(get_old_alter_table(thd),
+                                             "ALGORITHM=INPLACE");
+      return true;
+    }
+    return false;
+  case HA_ALTER_INPLACE_NOCOPY_NO_LOCK:
+  case HA_ALTER_INPLACE_NOCOPY_LOCK:
+    if (requested_algorithm == Alter_info::ALTER_TABLE_ALGORITHM_INSTANT)
+    {
+      ha_alter_info.report_unsupported_error("ALGORITHM=INSTANT",
+                                             "ALGORITHM=NOCOPY");
+      return true;
+    }
+    if (requested_algorithm == Alter_info::ALTER_TABLE_ALGORITHM_DEFAULT &&
+        thd->variables.old_alter_table == INSTANT_ALGO)
+    {
+      ha_alter_info.report_unsupported_error("OLD_ALTER_TABLE=INSTANT",
+                                             "ALGORITHM=NOCOPY");
+      return true;
+    }
+    return false;
+  case HA_ALTER_INPLACE_NOT_SUPPORTED:
+    if (requested_algorithm >= Alter_info::ALTER_TABLE_ALGORITHM_INPLACE)
+    {
+      ha_alter_info.report_unsupported_error(algorithm(),
+					     "ALGORITHM=COPY");
+      return true;
+    }
+    if (requested_algorithm == Alter_info::ALTER_TABLE_ALGORITHM_DEFAULT &&
+        thd->variables.old_alter_table >= INPLACE_ALGO)
+    {
+      ha_alter_info.report_unsupported_error(get_old_alter_table(thd),
+                                             "ALGORITHM=NOCOPY");
+      return true;
+    }
+    return false;
+  case HA_ALTER_ERROR:
+    return true;
+  }
+
+  DBUG_ASSERT(0);
+  return false;
+}
+
+bool Alter_info::supports_lock(THD* thd, enum_alter_inplace_result result,
+                               const Alter_inplace_info &ha_alter_info)
+{
+  switch (result) {
+  case HA_ALTER_INPLACE_EXCLUSIVE_LOCK:
+    // If SHARED lock and no particular algorithm was requested, use COPY.
+    if (requested_lock == Alter_info::ALTER_TABLE_LOCK_SHARED
+        && requested_algorithm == Alter_info::ALTER_TABLE_ALGORITHM_DEFAULT)
+    {
+         return true;
+    }
+
+    if (requested_lock == Alter_info::ALTER_TABLE_LOCK_SHARED
+        || requested_lock == Alter_info::ALTER_TABLE_LOCK_NONE)
+    {
+      ha_alter_info.report_unsupported_error(lock(), "LOCK=EXCLUSIVE");
+      return true;
+    }
+    return false;
+  case HA_ALTER_INPLACE_NO_LOCK:
+  case HA_ALTER_INPLACE_INSTANT:
+  case HA_ALTER_INPLACE_COPY_NO_LOCK:
+  case HA_ALTER_INPLACE_NOCOPY_NO_LOCK:
+    return false;
+  case HA_ALTER_INPLACE_COPY_LOCK:
+  case HA_ALTER_INPLACE_NOCOPY_LOCK:
+  case HA_ALTER_INPLACE_NOT_SUPPORTED:
+  case HA_ALTER_INPLACE_SHARED_LOCK:
+    if (requested_lock == Alter_info::ALTER_TABLE_LOCK_NONE)
+    {
+      ha_alter_info.report_unsupported_error("LOCK=NONE", "LOCK=SHARED");
+      return true;
+    }
+    return false;
+  case HA_ALTER_ERROR:
+    return true;
+  }
+  DBUG_ASSERT(0);
+  return false;
+}
 
 Alter_table_ctx::Alter_table_ctx()
   : datetime_field(NULL), error_if_not_empty(false),
