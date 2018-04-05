@@ -1413,6 +1413,14 @@ int MYSQLlex(YYSTYPE *yylval, THD *thd)
       lip->lookahead_token= token;
       return VALUES;
     }
+  case VALUE_SYM:
+    if (thd->lex->current_select &&
+       thd->lex->current_select->parsing_place == BEFORE_OPT_FIELD_LIST)
+    {
+      thd->lex->current_select->parsing_place= NO_MATTER;
+      return VALUES;
+    }
+    break;
   case PARTITION_SYM:
   case SELECT_SYM:
   case UNION_SYM:
