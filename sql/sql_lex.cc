@@ -8475,7 +8475,7 @@ bool LEX::insert_select_hack(SELECT_LEX *sel)
   builtin_select.context= sel->context;
   change_item_list_context(&field_list, &sel->context);
 
-  if (sel->tvc && !sel->next_select() && !sel->first_inner_unit() &&
+  if (sel->tvc && !sel->next_select() &&
       (sql_command == SQLCOM_INSERT_SELECT ||
        sql_command == SQLCOM_REPLACE_SELECT))
   {
