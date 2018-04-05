@@ -8450,30 +8450,6 @@ bool LEX::insert_select_hack(SELECT_LEX *sel)
   DBUG_ASSERT(first_select_lex() == &builtin_select);
   DBUG_ASSERT(sel != NULL);
 
-  if (sel->tvc && !sel->next_select() && !sel->first_inner_unit() &&
-      (sql_command == SQLCOM_INSERT_SELECT ||
-       sql_command == SQLCOM_REPLACE_SELECT))
-  {
-    DBUG_PRINT("info", ("'Unual' INSERT detected"));
-    if (sel->link_prev)
-    {
-     if ((*sel->link_prev= sel->link_next))
-       ((st_select_lex *)sel->link_next)->link_prev= sel->link_prev;
-     sel->link_prev= NULL; // indicator of removal
-    }
-    builtin_select.next= NULL;
-    builtin_select.master= &unit;
-    unit.slave= &builtin_select;
-    many_values= sel->tvc->lists_of_values;
-    builtin_select.options= sel->tvc->select_options;
-    sel->tvc= NULL;
-    if (sql_command == SQLCOM_INSERT_SELECT)
-      sql_command= SQLCOM_INSERT;
-    else
-      sql_command= SQLCOM_REPLACE;
-    DBUG_RETURN(FALSE);
-  }
-
   if (builtin_select.link_prev)
   {
     if ((*builtin_select.link_prev= builtin_select.link_next))
@@ -8498,6 +8474,21 @@ bool LEX::insert_select_hack(SELECT_LEX *sel)
   sel->context.first_name_resolution_table= insert_table;
   builtin_select.context= sel->context;
   change_item_list_context(&field_list, &sel->context);
+
+  if (sel->tvc && !sel->next_select() && !sel->first_inner_unit() &&
+      (sql_command == SQLCOM_INSERT_SELECT ||
+       sql_command == SQLCOM_REPLACE_SELECT))
+  {
+    DBUG_PRINT("info", ("'Unual' INSERT detected"));
+    many_values= sel->tvc->lists_of_values;
+    sel->options= sel->tvc->select_options;
+    sel->tvc= NULL;
+    if (sql_command == SQLCOM_INSERT_SELECT)
+      sql_command= SQLCOM_INSERT;
+    else
+      sql_command= SQLCOM_REPLACE;
+    DBUG_RETURN(FALSE);
+  }
 
 
   for (SELECT_LEX *sel= all_selects_list;
