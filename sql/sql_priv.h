@@ -359,7 +359,8 @@ enum enum_parsing_place
   IN_ORDER_BY,
   IN_UPDATE_ON_DUP_KEY,
   IN_PART_FUNC,
-  BEFORE_OPT_FIELD_LIST,
+  BEFORE_OPT_LIST,
+  AFTER_LIST,
   PARSING_PLACE_SIZE /* always should be the last */
 };
 

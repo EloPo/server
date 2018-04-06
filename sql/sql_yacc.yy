@@ -2573,7 +2573,7 @@ create:
             lex->create_info.init();
             if (lex->main_select_push())
               MYSQL_YYABORT;
-            lex->current_select->parsing_place= BEFORE_OPT_FIELD_LIST;
+            lex->current_select->parsing_place= BEFORE_OPT_LIST;
             if (lex->set_command_with_check(SQLCOM_CREATE_TABLE, $2, $1 | $4))
                MYSQL_YYABORT;
           }
@@ -13390,7 +13390,7 @@ insert:
             if (Lex->main_select_push())
               MYSQL_YYABORT;
             mysql_init_select(lex);
-            lex->current_select->parsing_place= BEFORE_OPT_FIELD_LIST;
+            lex->current_select->parsing_place= BEFORE_OPT_LIST;
           }
           insert_lock_option
           opt_ignore insert2
@@ -13415,7 +13415,7 @@ replace:
             if (Lex->main_select_push())
               MYSQL_YYABORT;
             mysql_init_select(lex);
-            lex->current_select->parsing_place= BEFORE_OPT_FIELD_LIST;
+            lex->current_select->parsing_place= BEFORE_OPT_LIST;
           }
           replace_lock_option insert2
           {
@@ -13494,6 +13494,9 @@ insert_field_spec:
 
 insert_field_list:
           LEFT_PAREN_ALT opt_fields ')'
+          {
+            Lex->current_select->parsing_place= AFTER_LIST;
+          }
         ;
 
 opt_fields:
@@ -15216,7 +15219,7 @@ with_clause:
              lex->curr_with_clause= with_clause;
              with_clause->add_to_list(Lex->with_clauses_list_last_next);
              if (lex->current_select &&
-                 lex->current_select->parsing_place == BEFORE_OPT_FIELD_LIST)
+                 lex->current_select->parsing_place == BEFORE_OPT_LIST)
                lex->current_select->parsing_place= NO_MATTER;
           }
           with_list

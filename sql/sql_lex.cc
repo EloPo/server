@@ -1341,6 +1341,8 @@ int MYSQLlex(YYSTYPE *yylval, THD *thd)
   token= lex_one_token(yylval, thd);
   lip->add_digest_token(token, yylval);
 
+  SELECT_LEX *curr_sel= thd->lex->current_select;
+
   switch(token) {
   case WITH:
     /*
@@ -1391,15 +1393,16 @@ int MYSQLlex(YYSTYPE *yylval, THD *thd)
     }
     break;
   case VALUES:
-    if (thd->lex->current_select &&
-       thd->lex->current_select->parsing_place == BEFORE_OPT_FIELD_LIST)
+    if (curr_sel &&
+        (curr_sel->parsing_place == BEFORE_OPT_LIST ||
+         curr_sel->parsing_place == AFTER_LIST))
     {
-      thd->lex->current_select->parsing_place= NO_MATTER;
+      curr_sel->parsing_place= NO_MATTER;
       break;
     }
-    if (thd->lex->current_select &&
-        (thd->lex->current_select->parsing_place == IN_UPDATE_ON_DUP_KEY ||
-         thd->lex->current_select->parsing_place == IN_PART_FUNC))
+    if (curr_sel &&
+        (curr_sel->parsing_place == IN_UPDATE_ON_DUP_KEY ||
+         curr_sel->parsing_place == IN_PART_FUNC))
       return VALUE_SYM;
     token= lex_one_token(yylval, thd);
     lip->add_digest_token(token, yylval);
@@ -1415,32 +1418,34 @@ int MYSQLlex(YYSTYPE *yylval, THD *thd)
       return VALUES;
     }
   case VALUE_SYM:
-    if (thd->lex->current_select &&
-       thd->lex->current_select->parsing_place == BEFORE_OPT_FIELD_LIST)
+    if (curr_sel &&
+        (curr_sel->parsing_place == BEFORE_OPT_LIST ||
+         curr_sel->parsing_place == AFTER_LIST))
     {
-      thd->lex->current_select->parsing_place= NO_MATTER;
+      curr_sel->parsing_place= NO_MATTER;
       return VALUES;
     }
     break;
   case PARTITION_SYM:
   case SELECT_SYM:
   case UNION_SYM:
-    if (thd->lex->current_select &&
-        thd->lex->current_select->parsing_place == BEFORE_OPT_FIELD_LIST)
+    if (curr_sel &&
+        (curr_sel->parsing_place == BEFORE_OPT_LIST ||
+         curr_sel->parsing_place == AFTER_LIST))
     {
-      thd->lex->current_select->parsing_place= NO_MATTER;
+      curr_sel->parsing_place= NO_MATTER;
     }
     break;
   case left_paren:
-    if (!thd->lex->current_select ||
-        thd->lex->current_select->parsing_place != BEFORE_OPT_FIELD_LIST)
+    if (!curr_sel ||
+        curr_sel->parsing_place != BEFORE_OPT_LIST)
       return token;
     token= lex_one_token(yylval, thd);
     lip->add_digest_token(token, yylval);
     lip->lookahead_yylval= lip->yylval;
     lip->yylval= NULL;
     lip->lookahead_token= token;
-    thd->lex->current_select->parsing_place= NO_MATTER;
+    curr_sel->parsing_place= NO_MATTER;
     if (token == LIKE)
       return LEFT_PAREN_LIKE;
     if (token == WITH)
