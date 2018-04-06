@@ -9235,20 +9235,25 @@ simple_table:
 table_value_constructor:
 	  VALUES
 	  {
-	    LEX *lex=Lex;
+	    LEX *lex= Lex;
+            SELECT_LEX *sel;
             //lex->field_list.empty();
             lex->many_values.empty();
             lex->insert_list=0;
+            if (!(sel= lex->alloc_select(TRUE)) ||
+                  lex->push_select(sel))
+              MYSQL_YYABORT;
+            sel->init_select();
+            sel->braces= FALSE;
 	  }
 	  values_list
 	  {
 	    LEX *lex=Lex;
-            if (!($$= lex->alloc_select(TRUE)) ||
-                  lex->push_select($$))
-              MYSQL_YYABORT;
-            $$->init_select();
+            $$= lex->pop_select(); // above TVC select
 	    if (!($$->tvc=
-	          new (lex->thd->mem_root) table_value_constr(lex->many_values, $$, $$->options)))
+	          new (lex->thd->mem_root) table_value_constr(lex->many_values,
+                                                              $$,
+                                                              $$->options)))
 	      MYSQL_YYABORT;
 	    lex->many_values.empty();
 	  }
