@@ -904,7 +904,7 @@ bool my_yyoverflow(short **a, YYSTYPE **b, size_t *yystacksize);
 %parse-param { THD *thd }
 %lex-param { THD *thd }
 /*
-  Currently there are 96 shift/reduce conflicts.
+  Currently there are 135 shift/reduce conflicts.
   We should not introduce new conflicts any more.
 */
 %expect 135
@@ -9244,7 +9244,7 @@ table_value_constructor:
                   lex->push_select(sel))
               MYSQL_YYABORT;
             sel->init_select();
-            sel->braces= FALSE;
+            sel->braces= FALSE; // just initialisation
 	  }
 	  values_list
 	  {
@@ -13763,8 +13763,10 @@ single_multi:
           }
         | table_wild_list
           {
+            /* XXX
             if (Lex->main_select_push())
               MYSQL_YYABORT;
+            */
             mysql_init_multi_delete(Lex);
             YYPS->m_lock_type= TL_READ_DEFAULT;
             YYPS->m_mdl_type= MDL_SHARED_READ;
@@ -13779,8 +13781,10 @@ single_multi:
           }
         | FROM table_alias_ref_list
           {
+            /* XXX
             if (Lex->main_select_push())
               MYSQL_YYABORT;
+              */
             mysql_init_multi_delete(Lex);
             YYPS->m_lock_type= TL_READ_DEFAULT;
             YYPS->m_mdl_type= MDL_SHARED_READ;
