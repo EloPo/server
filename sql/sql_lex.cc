@@ -3687,8 +3687,6 @@ void LEX::fix_first_select_number()
     {
       if (sel->select_number < num)
         sel->select_number++;
-      if (sel->select_number > num)
-        sel->select_number--;
     }
     first->select_number= 1;
   }
@@ -5556,6 +5554,7 @@ SELECT_LEX *LEX::pop_new_select_and_wrap()
       DBUG_RETURN(NULL);
   last->link_neighbour(sel);
   sel->set_linkage_and_distinct(op, ds);
+  sel->set_master_unit(last->master_unit());
   DBUG_RETURN(sel);
 }
 
